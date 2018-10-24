@@ -116,7 +116,7 @@ library(tidyr)
 
 #ENTER YOUR VARIABLES HERE
 workingdir = "H:/Data processing/2015 Wild vs. Farmed/Cropped data/Coded Day CSV" # change to location of data
-dayfile.loc = "run_2LLF15S100156_day_coded.csv" # change to file to be analysed
+dayfile.loc = "run_2LLF15S100157_day_coded.csv" # change to file to be analysed
 masterfileloc = "H:/Data processing/AcousticTagFile_2015.xlsx" # change to location of AcousticTagFile.xlsx
 
 workingdir = "H:/Data processing/2015 Wild vs. Farmed/Cropped data/Coded Fish CSV" # change to location of data
