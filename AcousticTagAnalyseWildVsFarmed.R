@@ -115,24 +115,26 @@ library(tidyr)
 
 
 #ENTER YOUR VARIABLES HERE
-workingdir = "H:/Data processing/2015 Wild vs. Farmed/Cropped data/Coded Day CSV" # change to location of data
+workingdir = "H:/Acoustic tag - Wild vs. Farmed/Data processing/Cropped data/Coded Day CSV" # change to location of data
 dayfile.loc = "run_2LLF15S100157_day_coded.csv" # change to file to be analysed
-masterfileloc = "H:/Data processing/AcousticTagFile_2015.xlsx" # change to location of AcousticTagFile.xlsx
+masterfileloc = "H:/Acoustic tag - Wild vs. Farmed/AcousticTagFile_2015.xlsx" # change to location of AcousticTagFile.xlsx
 
 workingdir = "H:/Data processing/2015 Wild vs. Farmed/Cropped data/Coded Fish CSV" # change to location of data
 dayfile.loc = "run_1LLF15S1006331_fish_coded.csv" # change to file to be analysed
 masterfileloc = "H:/Data processing/AcousticTagFile_2015.xlsx" # change to location of AcousticTagFile.xlsx
 
 #new dayfile classes
-dayfile.classes <- c('NULL', 'numeric', 'factor', 'factor', 'POSIXct', 'double', 'double', 
-  'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'factor',
-  'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor',
-  'double', 'double', 'double', 'double', 'double', 'double', 'double',
-  'double', 'double', 'double', 'double', 'double', 'double', 'double',
-  'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 
-  'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor',
-  'factor', 'factor', 'double', 'double', 'double', 'double', 'double', 
-  'double', 'double', 'double', 'double', 'double', 'double', 'double'#, 'factor'
+dayfile.classes <- c('NULL', 'numeric', 'factor', 'factor', # Period, subcode, pen
+                    'POSIXct', 'double', 'double', 'double', # EchoTime and fish coordinates
+                    'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', # derived fish behaviour parameters
+                    'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', # pen husbandry, water vis, moon phase & species
+                    'double', 'double', 'double', 'double', 'double', 'double', 'double', # pen 7 lice numbers
+                    'double', 'double', 'double', 'double', 'double', 'double', 'double', # pen 8 lice numbers
+                    'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', # fish location codes
+                    'factor', 'factor', 'factor', # sun and tide times and tide height
+                    'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', # salmon, wrasse and lumpfish feeding times
+                    'double', 'double', 'double', 'double', 'double', 'double',
+                    'double', 'double', 'double', 'double', 'double', 'double' # Water quality probe data
   )
 
 #old dayfile classes
