@@ -12,6 +12,8 @@ library(openxlsx)
 options(java.parameters = "-Xmx32000m")
 library(dplyr)
 library(tidyr)
+library(tidyimpute)
+library(na.tools)
 
 #ENTER YOUR VARIABLES HERE
 workingdir = "H:/Data processing/2015 Wild vs. Farmed/Cropped data/Coded Day CSV" # change to location of data
@@ -668,6 +670,29 @@ system.time({
 })
 
 
+
+
+# Retrospectively add new column of water temperature at the fish's depth
+
+fdtemp <- function(x, t1, t2, t4, t8){ #t1 = dayfile$T1, t2 = dayfile$T2, t4 = dayfile$T4, t8 = dayfile$T8){
+  
+  tprofile <- data.frame(depth = seq(0, 35, 0.01)) %>%
+#    left_join(data.frame(depth = c(0, 1, 2, 4, 8, 35), temp = c(dayfile$T1, dayfile$T1, dayfile$T2, dayfile$T4, dayfile$T8, dayfile$T8)), by = 'depth') %>%
+    left_join(data.frame(depth = c(0, 1, 2, 4, 8, 35), temp = c(t1, t1, t2, t4, t8, t8)), by = 'depth') %>%
+    mutate(temp = approx(depth, temp, depth)$y)
+  
+  rownames(tprofile) <- tprofile$depth
+  #tprofile$depth <- NULL
+  
+  tatd <- as.numeric(tprofile[as.character(x),2])
+  return(tatd)
+}
+
+dayfile$FISHTEMP <- round(mapply(fdtemp, x = dayfile$PosZ, t1 = dayfile$T1, t2 = dayfile$T2, t4 = dayfile$T4, t8 = dayfile$T8, SIMPLIFY = T), 2)
+
+
+
+
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 # FUNCTIONS
@@ -951,6 +976,14 @@ theta <<- theta
 
 
 }
+
+
+
+
+
+
+
+
 
 
 
