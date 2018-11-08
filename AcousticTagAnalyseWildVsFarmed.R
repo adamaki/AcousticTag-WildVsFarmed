@@ -112,6 +112,8 @@ library(Rwave)
 library(WaveletComp)
 library(dplyr)
 library(tidyr)
+library(tidyverse)
+library(data.table)
 
 
 #ENTER YOUR VARIABLES HERE
@@ -134,7 +136,8 @@ dayfile.classes <- c('NULL', 'numeric', 'factor', 'factor', # Period, subcode, p
                     'factor', 'factor', 'factor', # sun and tide times and tide height
                     'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', # salmon, wrasse and lumpfish feeding times
                     'double', 'double', 'double', 'double', 'double', 'double',
-                    'double', 'double', 'double', 'double', 'double', 'double' # Water quality probe data
+                    'double', 'double', 'double', 'double', 'double', 'double', # Water quality probe data
+                    'double' # fish temperature at depth
   )
 
 #old dayfile classes
@@ -189,6 +192,8 @@ rownames(locations.lookup) <- locations.lookup$Code
 # LOAD DAYFILE
 setwd(workingdir)                                                                                                    
 dayfile <- read.csv(dayfile.loc, header = TRUE, sep = ",", colClasses = dayfile.classes) 
+dayfile <- fread(dayfile.loc)
+dayfile$EchoTime <- as.POSIXct(dayfile$EchoTime)
 
 #LOAD HIDEFILE
 setwd(workingdir)                                                                                                    
@@ -1074,6 +1079,101 @@ wavfunc <- function(fish.id, subtype, subcode){
 reconstruct(fish.wav, lwd = c(1,2), legend.coords = "bottomleft", plot.waves = F)#, sel.period = 24)
 
 wt.avg(fish.wav, 'sum')
+
+
+
+# Environmental variables and fish behaviour correlations---------------------------------------------------------
+
+# function to calculate trend line equation and r2 value
+# (https://stackoverflow.com/questions/7549694/adding-regression-line-equation-and-r2-on-graph)
+lm_eqn = function(m) {
+  
+  l <- list(a = format(coef(m)[1], digits = 2),
+            b = format(abs(coef(m)[2]), digits = 2),
+            r2 = format(summary(m)$r.squared, digits = 3));
+  
+  if (coef(m)[2] >= 0)  {
+    eq <- substitute(italic(y) == a + b %.% italic(x)*","~~italic(r)^2~"="~r2,l)
+  } else {
+    eq <- substitute(italic(y) == a - b %.% italic(x)*","~~italic(r)^2~"="~r2,l)    
+  }
+  
+  as.character(as.expression(eq));                 
+}
+
+
+dayfile <- filter(dayfile, !is.na(T1)) %>% # filter out pings with no probe data
+  arrange(Period, EchoTime)
+
+
+# plot individual fish temp with mean temp
+filter(dayfile, Period == 8991) %>%
+  ggplot() + 
+  geom_line(aes(EchoTime, FISHTEMP), colour = 'red') + 
+  geom_line(aes(EchoTime, rowMeans(data.frame(T1, T2, T4, T8), na.rm = T)), colour = 'blue')
+
+# plot individual fish temp with all probe temps
+filter(dayfile, Period == 7563) %>%
+  ggplot() + 
+  geom_line(aes(EchoTime, T1), colour = 'lightblue') +
+  geom_line(aes(EchoTime, T2), colour = 'blue') +
+  geom_line(aes(EchoTime, T4), colour = 'darkblue') +
+  geom_line(aes(EchoTime, T8), colour = 'black') +
+  geom_line(aes(EchoTime, FISHTEMP), colour = 'red') 
+
+#correlation between fish temp and activity
+
+fish <- 7563
+filter(dayfile, SUN == 'D') %>%  
+  filter(Period == fish) %>%
+  #filter(BLSEC > 0.2 & BLSEC < 4) %>%
+  #filter(PosZ > 8.01) %>%
+  sample_n(2000) %>%
+  ggplot() +
+  geom_point(aes(log(BLSEC), FISHTEMP)) +
+  geom_smooth(aes(log(BLSEC), FISHTEMP), method = lm) +
+  geom_text(aes(mean(log(BLSEC)), max(FISHTEMP), label = lm_eqn(lm(BLSEC[Period == fish & SUN == 'D']~FISHTEMP[Period == fish & SUN == 'D'], dayfile))), parse = T) +
+  geom_text(aes(mean(log(BLSEC)), max(FISHTEMP)-0.2, label = fish), parse = T)
+
+#correlation between fish temp and depth
+filter(dayfile, SUN == 'D') %>%  
+  filter(Period == 6331) %>%
+  sample_n(1000) %>%
+  ggplot() +
+  geom_point(aes(PosZ, FISHTEMP)) +#, colour = as.factor(Period))) +
+  geom_smooth(aes(PosZ, FISHTEMP), method = lm) +
+  geom_text(aes(mean(PosZ), max(FISHTEMP), label = lm_eqn(lm(PosZ~FISHTEMP, dayfile))), parse = T)
+
+
+#correlation between fish temp and mean water temp
+dayfile$meantemp <- rowMeans(data.frame(dayfile$T1, dayfile$T2, dayfile$T4, dayfile$T8))
+
+fish <- 8991
+
+filter(dayfile, SUN == 'D') %>%  
+  filter(Period == fish) %>%
+  sample_n(2000) %>%
+  ggplot() +
+  geom_point(aes(meantemp, FISHTEMP)) +#, colour = as.factor(Period))) +
+  geom_smooth(aes(meantemp, FISHTEMP), method = lm) +
+  geom_line(aes(meantemp, meantemp), colour = 'red', size = 1.5) +
+  geom_text(aes(mean(meantemp), max(FISHTEMP), label = lm_eqn(lm(meantemp[Period == fish & SUN == 'D']~FISHTEMP[Period == fish & SUN == 'D'], dayfile))), parse = T) +
+  geom_text(aes(mean(meantemp), max(FISHTEMP)-0.1, label = 'wild wrasse 8891'), parse = F) +
+  ggtitle('Correlation of mean water temperature and water temperature at fish\'s depth for individual fish')
+  
+# fish temp difference from mean water temp over time
+
+filter(dayfile, SUN == 'D') %>%  
+  filter(Period == fish) %>%
+  sample_n(2000) %>%
+  ggplot() +
+  geom_line(aes(EchoTime, c(rep(NA, 9), rollapply(FISHTEMP-meantemp, width = 10, FUN = mean)))) +#, colour = as.factor(Period))) +
+  geom_smooth(aes(meantemp, FISHTEMP), method = lm) +
+  geom_line(aes(meantemp, meantemp), colour = 'red', size = 1.5) +
+  geom_text(aes(mean(meantemp), max(FISHTEMP), label = lm_eqn(lm(meantemp[Period == fish & SUN == 'D']~FISHTEMP[Period == fish & SUN == 'D'], dayfile))), parse = T) +
+  geom_text(aes(mean(meantemp), max(FISHTEMP)-0.1, label = fish), parse = T)
+
+
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------
@@ -4284,16 +4384,20 @@ dayfile <- data.frame()
 
 for(i in 1:length(files)){
 
-  daytemp <- read.csv(files[[i]], header = TRUE, sep = ",", colClasses = dayfile.classes)
+  #daytemp <- read.csv(files[[i]], header = TRUE, sep = ",", colClasses = dayfile.classes)
+  daytemp <- fread(files[[i]])
   
 
   dayfile <- rbind(dayfile, daytemp)
 
 }
 
+dayfile$EchoTime <- as.POSIXct(dayfile$EchoTime)
+dayfile$V1 <- NULL
+
 #SORT BY TIME AND TAG
-dayfile <- dayfile[order(dayfile$EchoTime, na.last = FALSE, decreasing = FALSE, method = c("shell")),] # sort by time
-dayfile <- dayfile[order(dayfile$Period, na.last = FALSE, decreasing = FALSE, method = c("shell")),] # sort by tag
+#dayfile <- dayfile[order(dayfile$EchoTime, na.last = FALSE, decreasing = FALSE, method = c("shell")),] # sort by time
+#dayfile <- dayfile[order(dayfile$Period, na.last = FALSE, decreasing = FALSE, method = c("shell")),] # sort by tag
 
 dayfile <<- dayfile
 
@@ -4351,17 +4455,7 @@ batch.crop <- function(xmin = 30, xmax = 64, ymin = 5, ymax = 42){
   
   for(i in 1:length(files)){
     
-    dayfile <- read.csv(files[[i]], header = TRUE, sep = ",", colClasses = dayfile.classes) #c('NULL', 'numeric', 'factor', 'factor', 'POSIXct', 'double', 'double', 
-    #                                                                         'double', 'double', 'double', 'double', 'double', 'double', 'factor',
-    #                                                                         'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor',
-    #                                                                         'double', 'double', 'double', 'double', 'double', 'double', 'double',
-    #                                                                         'double', 'double', 'double', 'double', 'double', 'double', 'double',
-    #                                                                         'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 
-    #                                                                         'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 'factor', 
-    #                                                                         'factor', 'factor', 'double', 'double', 'double', 'double', 'double', 
-    #                                                                         'double', 'double', 'double', 'double', 'double', 'double', 'double'
-    #                                                                         
-    #)) #read data into table
+    dayfile <- read.csv(files[[i]], header = TRUE, sep = ",", colClasses = dayfile.classes) 
     #load.dayfile(files[[i]])
   
   dayfile <- subset(dayfile, dayfile$PosY > ymin & dayfile$PosY < ymax & dayfile$PosX > xmin & dayfile$PosX < xmax)
