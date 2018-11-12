@@ -1123,7 +1123,7 @@ filter(dayfile, Period == 7563) %>%
 
 #correlation between fish temp and activity
 
-fish <- 7563
+fish <- 8991
 filter(dayfile, SUN == 'D') %>%  
   filter(Period == fish) %>%
   #filter(BLSEC > 0.2 & BLSEC < 4) %>%
@@ -1133,25 +1133,30 @@ filter(dayfile, SUN == 'D') %>%
   geom_point(aes(log(BLSEC), FISHTEMP)) +
   geom_smooth(aes(log(BLSEC), FISHTEMP), method = lm) +
   geom_text(aes(mean(log(BLSEC)), max(FISHTEMP), label = lm_eqn(lm(BLSEC[Period == fish & SUN == 'D']~FISHTEMP[Period == fish & SUN == 'D'], dayfile))), parse = T) +
-  geom_text(aes(mean(log(BLSEC)), max(FISHTEMP)-0.2, label = fish), parse = T)
+  geom_text(aes(mean(log(BLSEC)), max(FISHTEMP)-0.2, label = fish), parse = T) +
+  ggtitle('Correlation of swimming speed and water temperature at fish\' depth')
 
 #correlation between fish temp and depth
+fish <- 8991
 filter(dayfile, SUN == 'D') %>%  
-  filter(Period == 6331) %>%
-  sample_n(1000) %>%
+  filter(Period == fish) %>%
+  sample_n(2000) %>%
   ggplot() +
   geom_point(aes(PosZ, FISHTEMP)) +#, colour = as.factor(Period))) +
   geom_smooth(aes(PosZ, FISHTEMP), method = lm) +
-  geom_text(aes(mean(PosZ), max(FISHTEMP), label = lm_eqn(lm(PosZ~FISHTEMP, dayfile))), parse = T)
-
+  geom_text(aes(mean(PosZ), max(FISHTEMP), label = lm_eqn(lm(BLSEC[Period == fish & SUN == 'D']~FISHTEMP[Period == fish & SUN == 'D'], dayfile))), parse = T) +
+  geom_text(aes(mean(PosZ), max(FISHTEMP)-0.2, label = fish), parse = T) +
+  ggtitle('correlation of fish\'s depth and water temperature at fish\'s depth')
 
 #correlation between fish temp and mean water temp
 dayfile$meantemp <- rowMeans(data.frame(dayfile$T1, dayfile$T2, dayfile$T4, dayfile$T8))
 
-fish <- 8991
+fish <- 8459
 
 filter(dayfile, SUN == 'D') %>%  
   filter(Period == fish) %>%
+  filter(PosZ < 8) %>%
+  filter(PosZ > 1) %>%
   sample_n(2000) %>%
   ggplot() +
   geom_point(aes(meantemp, FISHTEMP)) +#, colour = as.factor(Period))) +
@@ -1172,6 +1177,17 @@ filter(dayfile, SUN == 'D') %>%
   geom_line(aes(meantemp, meantemp), colour = 'red', size = 1.5) +
   geom_text(aes(mean(meantemp), max(FISHTEMP), label = lm_eqn(lm(meantemp[Period == fish & SUN == 'D']~FISHTEMP[Period == fish & SUN == 'D'], dayfile))), parse = T) +
   geom_text(aes(mean(meantemp), max(FISHTEMP)-0.1, label = fish), parse = T)
+
+
+# histogram of water temperature at fish's depth
+hist(dayfile$FISHTEMP[dayfile$PEN == '7' & dayfile$PosZ < 8], xlab = 'temperature at fish\'s depth (deg C)',
+     main = 'Histogram of water temperature at fish\'s depth in wild ballan wrasse')
+hist(dayfile$FISHTEMP[dayfile$PEN == '8' & dayfile$PosZ < 8], xlab = 'temperature at fish\'s depth (deg C)',
+     main = 'Histogram of water temperature at fish\'s depth in farmed ballan wrasse')
+
+hist(dayfile$meantemp[dayfile$PEN == 8]-dayfile$FISHTEMP[dayfile$PEN == 8], xlim = c(-1, 2), ylim = c(0, 1500000), 
+     xlab = 'deviation of water temperature at fish\'s depth from mean water temperature (deg C)',
+     main = 'Histogram of deviation of water temperature at fish\'s depth from mean water temeprature in farmed wrasse')
 
 
 
