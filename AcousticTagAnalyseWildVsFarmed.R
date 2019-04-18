@@ -121,7 +121,7 @@ workingdir = "H:/Acoustic tag - Wild vs. Farmed/Data processing/Cropped data/Cod
 dayfile.loc = "run_2LLF15S100157_day_coded.csv" # change to file to be analysed
 masterfileloc = "H:/Acoustic tag - Wild vs. Farmed/AcousticTagFile_2015.xlsx" # change to location of AcousticTagFile.xlsx
 
-workingdir = "H:/Data processing/2015 Wild vs. Farmed/Cropped data/Coded Fish CSV" # change to location of data
+workingdir = "H:/Acoustic tag - Wild vs. Farmed/Data processing/Cropped data/Coded Fish CSV" # change to location of data
 dayfile.loc = "run_1LLF15S1006331_fish_coded.csv" # change to file to be analysed
 masterfileloc = "H:/Data processing/AcousticTagFile_2015.xlsx" # change to location of AcousticTagFile.xlsx
 
@@ -1202,6 +1202,32 @@ tab1 <- table(dayfile$Period, as.Date(dayfile$EchoTime))
 is.na(tab1) <- !tab1
 range(tab1[7:nrow(tab1),], na.rm = T)
 
+
+
+#draw plots of behaviour states from bsf2 function output----------------------
+
+grouppal <- c(brewer.pal(11, 'Spectral')[[2]], brewer.pal(11, 'Spectral')[[3]], brewer.pal(11, 'Spectral')[[4]], brewer.pal(11, 'Spectral')[[8]], brewer.pal(11, 'Spectral')[[9]], brewer.pal(11, 'Spectral')[[10]])
+
+bstab$pen <- revalue(bstab$pen, c('7' = 'Wild', '8' = 'Farmed')) # change group names
+bstab$BS <- revalue(bstab$BS, c('Rr' = 'static', 'Rf' = 'milling', 'Ra' = 'active resident', 'Ep' = 'patrolling', 'Ef' = 'foraging', 'Ea' = 'active transient')) # rename behaviour states
+
+bstab$dur <- bstab$dur/60 # convert duration to minutes
+
+sp <- ggplot(bstab, aes(x=dur, y=freq, colour = pen, group = pen)) + theme(panel.background = element_rect(fill = 'white', colour = 'black')) +
+#  scale_x_log10(limits = c(10, 1000), 
+#                breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000), 
+#                labels = c(1, '', '', '', '', '', '', '', '', 10, '', '', '', '', '', '', '', '', 100, '', '', '', '', '', '', '', '', 1000, '', '', '', '', '', '', '', '', 10000)) +
+  scale_x_log10(limits = c(0.1, 1000), 
+                breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000), 
+                labels = c(0.1, '', '', '', '', '', '', '', '', 1, '', '', '', '', '', '', '', '', 10, '', '', '', '', '', '', '', '', 100, '', '', '', '', '', '', '', '', 1000)) +
+  scale_y_log10(limits = c(0.001, 1), breaks = c(0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.8, 0.09, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1), 
+                labels = c(bquote(10^-3), '', '', '', '', '', '', '', '', bquote(10^-2), '', '', '', '', '', '', '', '', bquote(10^-1), '', '', '', '', '', '', '', '', bquote(10^0))) +
+  geom_path(size = 1) + labs(title = 'Behaviour state frequencies', x = 'duration (mins)', y = 'frequency') + scale_colour_manual(values = c(grouppal[[1]], grouppal[[4]])) + 
+  theme(legend.title = element_blank()) +
+  #guides(colour = F)# + geom_smooth(linetype = 'dashed',  method = 'nls', formula = y~a*x^b, se = F) + geom_text(size = 4.5, hjust = 0, aes(x = 100, y = 1, colour = grouppal[[2]], label = power_eqn(subset(bstab, pen == '7' & BS == 'Ea'))), parse = TRUE) + geom_text(size = 4.5, hjust = 0, aes(x = 100, y = 0.6, colour = grouppal[[1]], label = power_eqn(subset(bstab, pen == '8' & BS == 'Ea'))), parse = TRUE)
+  facet_wrap(vars(BS))
+
+
 #--------------------------------------------------------------------------------------------------------------------------------------------
 
 #STATS
@@ -1449,6 +1475,19 @@ cramerVFit(x = hfdf$farmed, p = hfdf$theo)
 
 # small = > 0.042, medium = > 0.127 and large = > 0.212
 
+# compare headings for all groups against wild group
+
+hfdf <- cbind(hfdf, pbhfdf) # pbhfdf is headings data from precon b dataset
+hfdf$wtheo <- hfdf$wild/sum(hfdf$wild)
+
+chisq.test(x = hfdf$wild, p = hfdf$wtheo)
+chisq.test(x = hfdf$farmed, p = hfdf$wtheo)
+
+cramerVFit(x = hfdf$wild, p = hfdf$wtheo)
+cramerVFit(x = hfdf$farmed, p = hfdf$wtheo)
+cramerVFit(x = hfdf$acclimated, p = hfdf$wtheo)
+cramerVFit(x = hfdf$non_acclimated, p = hfdf$wtheo)
+
 # Depth stat analysis----------------------------------------------------
 
 statdf <- dayfile[c(1, 3, 4, 7, 46)]
@@ -1485,6 +1524,65 @@ cohen.d(data$PosZ, data$SUN)
 # significant effect sizes
 # small >0.2, medium >0.5, large >0.8
 
+
+# stats to calculate mean depth difference per day between wild and farmed fish (for publication plot)
+
+statdf <- select(wildvsfarmed, Period, PEN, PosZ, day) %>%
+  group_by(Period, PEN, day) %>%
+  summarise(mdep = mean(PosZ)) #%>%
+  #filter(day == 23)
+
+statdf$day <- as.factor(statdf$day)
+statdf$PEN <- as.factor(statdf$PEN)
+
+
+for(i in 1:37){
+
+model <- aov(formula = mdep~PEN, data = filter(statdf, day == i))
+print(i)
+print(summary(model))
+
+}
+
+# Calculation of detection rates for methods paper
+
+setwd('H:/Acoustic tag - Wild vs. Farmed/Data processing/6a. Coded Day CSV/AnalysedDays') # uncropped data
+workingdir <- 'H:/Acoustic tag - Wild vs. Farmed/Data processing/Cropped data/Coded Day CSV' # cropped data
+
+load.all()
+
+wildvsfarmed$date <- as.Date(wildvsfarmed$EchoTime)
+wildvsfarmed <- wildvsfarmed %>% filter(Period %in% c(6863, 7087, 6639, 8935, 6695, 7423, 6499, 7563, 9383, 6387, 8599, 8011, 6331, 8991, 8823, 9271, 8235, 7311, 9859, 9047, 7199, 6751, 9159, 8459))
+
+wfag <- select(wildvsfarmed, Period, PEN, date) %>% 
+  count(Period, date, name = 'dpings') %>% 
+  mutate(ppings = round((60/(Period/1000))*1440)) %>% # calculate No. of pings in one day based on PRI
+  mutate(pdiff = ppings-dpings) %>%
+  mutate(pcdet = (dpings/ppings)*100) %>%
+  filter(date != '2015-06-05' & date != '2015-06-18' & date != '2015-06-23'& date != '2015-06-30'
+         & date != '2015-07-03' & date != '2015-07-17') %>% # run to here for plot of each tag
+  group_by(date) %>% 
+  summarise(mean = mean(pcdet), sd = sd(pcdet)) %>%
+  mutate(day = seq(1, 31, 1))
+
+write.csv(wfag, 'H:/Acoustic tag - Wild vs. Farmed/Data processing/Cropped data/Coded Day CSV/Outputs/DetectionRates.csv')
+
+wfag <- fread('H:/Acoustic tag - Wild vs. Farmed/Data processing/Cropped data/Coded Day CSV/Outputs/DetectionRates.csv')
+
+  ggplot(wfag) + 
+    geom_line(aes(x = day, y = mean)) +
+    geom_point(aes(x = day, y = mean)) +
+    scale_y_continuous(limits = c(0, 100), breaks = seq(10, 100, 10), name = 'Detection rate (%)') +
+    scale_x_continuous(limits = c(0, 31), breaks = seq(0, 30, 5), name = 'Experiment day') +
+    geom_errorbar(aes(x = day, ymin = mean-sd, ymax = mean+sd))
+  
+ # plot of daily detection rates for each tag
+ggplot(wfag) +
+  geom_line(aes(x = date, y = pcdet, group = Period)) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(10, 100, 10), name = 'Detection rate (%)') +
+  facet_wrap(~Period)
+  
+  
 # FUNCTIONS----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -4974,7 +5072,7 @@ bplot <- function(period, step = 100){
     #depth plot
     
     plot(sect$EchoTime, sect$PosZ, xlab = 'Time', ylab = 'Depth (m)', ylim = c(35, 0), type = 'l', col = '#26b426')
-    segments(sect[1,4], 15, sect[nrow(fish.id), 4], 15, lty = 2)
+    #segments(x0 = as.POSIXct(sect[1,4]), y0 = 15, x1 = sect[nrow(fish.id),4], y1 = 15, lty = 2)
     legend('bottomleft', as.character(period), col = '#26b426', pch = 20, bty = 'n', pt.cex = 1.5, horiz = TRUE, y.intersp = 0)
     
     #turn/velocity plots
@@ -4997,7 +5095,7 @@ bplot <- function(period, step = 100){
     #par(new = T)
     plot(sect$EchoTime, sect$rollturnsumpersec, xlab = 'Time', type = 'l', lwd = 2, col = 'green', ylab = '', yaxt = 'n', ylim = c(0, 30)) # plot turn
     axis(2, ylim = c(0, 30), at = c(0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30), labels = c('0', '1', '2', '3', '4', '5', '10', '15', '20', '25', '30'))
-    mtext(text = 'Mean turn (m/s)', side = 2, line = 2)
+    mtext(text = 'Mean turn diff (deg/s)', side = 2, line = 2)
     
     # plot displacement/sec from 20 point rolling mean
     par(new = T)
@@ -5027,14 +5125,18 @@ bplot <- function(period, step = 100){
     mtext(text = 'mean velocity (m/sec)', side = 4, line = 2)
     
     # plot acceleration from rolling 10 point mean
-    par(new = T)
-    plot(sect$EchoTime, sect$accmean, col = 'pink', axes = F, xlab = '', ylab = '', type = 'l', lwd = 2, ylim = c(0, 0.4))
-    axis(4, ylim = c(0, 0.4), line = 3, at = c(0, 0.1, 0.2, 0.3, 0.4), labels = c('0', '0.1', '0.2', '0.3', '0.4'))
-    mtext(text = 'mean acceleration (m/sec)', side = 4, line = 5)
+    #par(new = T)
+    #plot(sect$EchoTime, sect$accmean, col = 'pink', axes = F, xlab = '', ylab = '', type = 'l', lwd = 2, ylim = c(0, 0.4))
+    #axis(4, ylim = c(0, 0.4), line = 3, at = c(0, 0.1, 0.2, 0.3, 0.4), labels = c('0', '0.1', '0.2', '0.3', '0.4'))
+    #mtext(text = 'mean acceleration (m/sec)', side = 4, line = 5)
     
     
-    legend('topleft', legend = c('Mean turn', 'Displacement', 'Mean velocity', 'Mean acceleration'), cex = 0.8, bty = 'n', lty = 1, lwd = 1, col = c('green', 'blue', 'red', 'pink'), horiz = F)
-
+    #legend('topleft', legend = c('Mean turn', 'Displacement', 'Mean velocity', 'Mean acceleration'), cex = 0.8, bty = 'n', lty = 1, lwd = 1, col = c('green', 'blue', 'red', 'pink'), horiz = F)
+    legend('topleft', legend = c('Mean turn diff', 'Displacement', 'Mean velocity'), cex = 0.8, bty = 'n', lty = 1, lwd = 1, col = c('green', 'blue', 'red'), horiz = F)
+    
+    # alternative behaviour state coding based on BL/SEC
+    dayfile$BS <- ifelse(dayfile$displace <= 0.015, ifelse(dayfile$rollvel <= 0.15, 'Rr', ifelse(dayfile$rollvel >0.15 & dayfile$rollvel <=0.8, 'Rf', 'Ra')), ifelse(dayfile$rollturnsumpersec <= 4, 'Ep', ifelse(dayfile$rollvel <= 0.8, 'Ef', 'Ea')))
+    
     
     par(new = F)
     
@@ -5333,7 +5435,7 @@ bsf2 <- function(save = T){
   
   bsffile <- subset(bsffile, BSdur > 0)
   #bsffile$round <- as.numeric(as.character(cut(bsffile$BSFdur, breaks = c(0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000), labels = c('1', '2', '5', '10', '20', '50', '100', '200', '500', '1000'))))
-  bsffile$round <- as.numeric(as.character(cut(bsffile$BSdur, breaks = c(0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024), labels = c('1', '2', '4', '8', '16', '32', '64', '128', '256', '512', '1024'))))
+  bsffile$round <- as.numeric(as.character(cut(bsffile$BSdur, breaks = c(0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192), labels = c('1', '2', '4', '8', '16', '32', '64', '128', '256', '512', '1024', '2048', '4096', '8192'))))
   
   # generates table of BSF frequencies and draws plot
   
@@ -5346,7 +5448,8 @@ bsf2 <- function(save = T){
   
   bssum <- tapply(bstab$count, list(bstab$BS, bstab$pen), sum)
   
-  bstab$freq <- ifelse(bstab$BS == 'Ea', bstab$count / bssum[1,1], ifelse(bstab$BS == 'Ef', bstab$count / bssum[2,1], ifelse(bstab$BS == 'Ep', bstab$count / bssum[3,1], ifelse(bstab$BS == 'Ra', bstab$count / bssum[4,1], ifelse(bstab$BS == 'Rf', bstab$count / bssum[5,1], ifelse(bstab$BS == 'Rr', bstab$count / bssum[6,1], NA))))))
+  bstab$freq <- ifelse(bstab$BS == 'Ea' & bstab$pen == '7', bstab$count / bssum[1,1], ifelse(bstab$BS == 'Ef' & bstab$pen == '7', bstab$count / bssum[2,1], ifelse(bstab$BS == 'Ep' & bstab$pen == '7', bstab$count / bssum[3,1], ifelse(bstab$BS == 'Ra' & bstab$pen == '7', bstab$count / bssum[4,1], ifelse(bstab$BS == 'Rf' & bstab$pen == '7', bstab$count / bssum[5,1], ifelse(bstab$BS == 'Rr' & bstab$pen == '7', bstab$count / bssum[6,1], 
+                    ifelse(bstab$BS == 'Ea' & bstab$pen == '8', bstab$count / bssum[1,2], ifelse(bstab$BS == 'Ef' & bstab$pen == '8', bstab$count / bssum[2,2], ifelse(bstab$BS == 'Ep' & bstab$pen == '8', bstab$count / bssum[3,2], ifelse(bstab$BS == 'Ra' & bstab$pen == '8', bstab$count / bssum[4,2], ifelse(bstab$BS == 'Rf' & bstab$pen == '8', bstab$count / bssum[5,2], ifelse(bstab$BS == 'Rr' & bstab$pen == '8', bstab$count / bssum[6,2], NA))))))))))))
     
   
   bstab <- subset(bstab, bstab$freq > 0)
@@ -5391,6 +5494,7 @@ bsf2 <- function(save = T){
   #bsfplot <- bsfplot + draw_text(daytext, size = 16, x = 0.71, y = 0.33, hjust = 0)
   #print(bsfplot) 
   print(sp)
+  bstab <<- bstab
   
   #if(save == T){
     #ggsave(filename = sub('day_coded.csv', '_bsfplot.png', dayfile.loc), plot = bsfplot) 
